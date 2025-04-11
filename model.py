@@ -65,7 +65,7 @@ class Yolo(nn.Module):
         self.fully_connected = self._create_fully_connected(**kwargs)
 
     def forward(self, x):
-        return self.cnn_network(x)
+        return self.fully_connected(self.cnn_network(x))
 
     # Create CNN network that using CNNBlock and Pooling.
     # Output Tensor of this will send to Fully connected layer after flattening.
@@ -115,12 +115,12 @@ class Yolo(nn.Module):
             nn.Linear(1024 * S * S, 496), # out_channels(1024) * out_width(S) * out_hight(s)
             nn.Dropout(),
             nn.LeakyReLU(negative_slope=0.1),
-            nn.Linear(496, S * S * (C + B + 5)) # 5 is for box center x, y and box width and height
+            nn.Linear(496, S * S * (C + B * 5)) # 5 is for box center x, y and box width and height
         )
 
 def test(S=7, B=2, C=20):
     model = Yolo(grid_size=S, num_boxes=B, num_classes=C)
-    x = torch.randn((2, 3, 448, 448)) # batch_size, image_width, image_height, color_channels
+    x = torch.randn((2, 3, 448, 448)) # batch_size, color_channels, image_height, image_width
     print(model(x).shape)
 
 test()
