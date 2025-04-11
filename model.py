@@ -53,16 +53,16 @@ class CNNBlock(nn.Module):
         self.leakyrelu = nn.LeakyReLU(negative_slope=0.1)
 
     def forward(self, x):
-        return self.leakyrelu(self.batchnorm(self.conv))
+        return self.leakyrelu(self.batchnorm(self.conv(x)))
     
 
 class Yolo(nn.Module):
-    def __init__(self, in_channels, **kwargs):
+    def __init__(self, in_channels=3, **kwargs):
         super(Yolo, self).__init__()
         self.architecture = architecture_config
         self.in_channels = in_channels
         self.cnn_network = self._create_cnn()
-        self.fully_connected = self._create_fully_connected()
+        self.fully_connected = self._create_fully_connected(**kwargs)
 
     def forward(self, x):
         return self.fully_connected(torch.flatten(self.cnn_network(x)))
@@ -76,7 +76,7 @@ class Yolo(nn.Module):
         for cl in self.architecture:
             if type(cl) == tuple:
                 layers += [
-                    CNNBlock(in_channels, cl[1], kernal_size=cl[0], stride=cl[2], padding=cl[3])
+                    CNNBlock(in_channels, cl[1], kernel_size=cl[0], stride=cl[2], padding=cl[3])
                 ]
                 # Size of out_channel should match the next CNNBlock in_channels for nn.conv2
                 in_channels = cl[1]
@@ -94,14 +94,14 @@ class Yolo(nn.Module):
                 cnn_block_2 = cl[1]
                 num_repeats = cl[2]
 
-                for _ in num_repeats:
+                for _ in range(num_repeats):
                     layers += [
-                        CNNBlock(in_channels, cnn_block_1[1], kernal_size=cnn_block_1[0], stride=cnn_block_1[2], padding=cnn_block_1[3])
+                        CNNBlock(in_channels, cnn_block_1[1], kernel_size=cnn_block_1[0], stride=cnn_block_1[2], padding=cnn_block_1[3])
                     ]
 
                     # Size of out_channel should match the next CNNBlock in_channels for nn.conv2
                     layers += [
-                        CNNBlock(cnn_block_1[1], cnn_block_2[1], kernal_size=cnn_block_2[0], stride=cnn_block_2[2], padding=cnn_block_2[3])
+                        CNNBlock(cnn_block_1[1], cnn_block_2[1], kernel_size=cnn_block_2[0], stride=cnn_block_2[2], padding=cnn_block_2[3])
                     ]
                     in_channels = cnn_block_2[1]
 
@@ -114,7 +114,13 @@ class Yolo(nn.Module):
             nn.Flatten(),
             nn.Linear(1024 * S * S, 496), # out_channels(1024) * out_width(S) * out_hight(s)
             nn.Dropout(),
-            nn.LeakyReLU(0.1),
+            nn.LeakyReLU(negative_slope=0.1),
             nn.Linear(496, S * S * (C + B + 5)) # 5 is for box center x, y and box width and height
         )
 
+def test(S=7, B=2, C=20):
+    model = Yolo(grid_size=S, num_boxes=B, num_classes=C)
+    x = torch.randn((2, 448, 448, 3))
+    print(model(x).shape)
+
+test()
