@@ -42,7 +42,7 @@ class CNNBlock(nn.Module):
         #  - Place the kernel on the top-left corner of the image.
         #  - Multiply element-wise and sum the results
         #  - Slide the kernel across the image, repeating the operation for each region.
-        self.conv = nn.Conv2d(in_channels, out_channels, bias=False, **kwargs)
+        self.conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, bias=False, **kwargs)
 
         # BatchNorm2d helps stabilize and accelerate training by normalizing activations across the batch.
         self.batchnorm = nn.BatchNorm2d(out_channels)
@@ -65,7 +65,7 @@ class Yolo(nn.Module):
         self.fully_connected = self._create_fully_connected(**kwargs)
 
     def forward(self, x):
-        return self.fully_connected(torch.flatten(self.cnn_network(x)))
+        return self.cnn_network(x)
 
     # Create CNN network that using CNNBlock and Pooling.
     # Output Tensor of this will send to Fully connected layer after flattening.
@@ -120,7 +120,7 @@ class Yolo(nn.Module):
 
 def test(S=7, B=2, C=20):
     model = Yolo(grid_size=S, num_boxes=B, num_classes=C)
-    x = torch.randn((2, 448, 448, 3))
+    x = torch.randn((2, 3, 448, 448)) # batch_size, image_width, image_height, color_channels
     print(model(x).shape)
 
 test()
